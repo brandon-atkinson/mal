@@ -1,31 +1,31 @@
 def pr_str(mal, print_readably=False):
     if mal is None:
         return None
-    if type(mal) is list:
+
+    if mal['typ'] == 'lst':
         s = '('
-        for i,m in enumerate(mal):
+        for i,m in enumerate(mal['val']):
             if i != 0:
                 s+= " "
             s += pr_str(m) 
         s += ')'
         return s
-    elif type(mal) is dict: 
-        if mal['typ'] == 'int':
-            return str(mal['val'])
-        elif mal['typ'] == 'bool':
-            return mal['val']
-        elif mal['typ'] == 'sym':
-            return mal['val']
-        elif mal['typ'] == 'str':
-            val = mal['val']
+    elif mal['typ'] == 'int':
+        return str(mal['val'])
+    elif mal['typ'] == 'bool':
+        return mal['val']
+    elif mal['typ'] == 'sym':
+        return mal['val']
+    elif mal['typ'] == 'str':
+        val = mal['val']
 
-            if print_readably: 
-                val = val.replace(r'\n', "\n") 
-                val = val.replace(r'\r', "\r") 
-                val = val.replace('\\\\', '\\') 
-                return f'"{val}"'
-            else: 
-                return f'"{val}"'
+        if print_readably: 
+            val = val.replace(r'\n', "\n") 
+            val = val.replace(r'\r', "\r") 
+            val = val.replace('\\\\', '\\') 
+            return f'"{val}"'
+        else: 
+            return f'"{val}"'
 
     raise Exception('unknown type')
 

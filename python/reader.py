@@ -75,7 +75,7 @@ def read_list_form(reader):
     token = reader.peek()
 
     if token == ')':
-        return token
+        return reader.next()
     else:
         return read_form(reader)
 
@@ -94,7 +94,7 @@ def read_list(reader):
                 break
             form_list.append(form)
 
-    return form_list
+    return {'typ': 'lst', 'val': form_list}
 
 
 #numbers
