@@ -10,12 +10,16 @@ def pr_str(mal, print_readably=False):
             s += pr_str(m) 
         s += ')'
         return s
+    elif mal['typ'] == 'nil':
+        return mal['val']
     elif mal['typ'] == 'int':
         return str(mal['val'])
     elif mal['typ'] == 'bool':
-        return mal['val']
+        return 'true' if mal['val'] else 'false'
     elif mal['typ'] == 'sym':
         return mal['val']
+    elif mal['typ'] == 'fn':
+       return "#<function>"
     elif mal['typ'] == 'str':
         val = mal['val']
 
@@ -26,10 +30,5 @@ def pr_str(mal, print_readably=False):
             return f'"{val}"'
         else: 
             return f'"{val}"'
-
-    raise Exception('unknown type')
-
-    
-def test_pr_str():
-    assert pr_str([{'typ':'sym','val':'hi'}]) == '(hi)'
-    assert pr_str([{'typ':'sym','val':'bye'},[{'typ':'int','val':25}]]) == '(bye (25))'
+    else:
+        raise Exception('unknown type')

@@ -103,7 +103,10 @@ REAL_PATTERN = re.compile(r'[+-]?(\d)+[.](\d*)([eE]\d+)?')
 RATIO_PATTERN = re.compile(r'[+-]?(\d+)/(\d+)')
 
 #bools
-BOOL_PATTERN = re.compile(r'#([fFtT])')
+BOOL_PATTERN = re.compile(r'(true|false)')
+
+#nil
+NIL_PATTERN = re.compile(r'nil')
 
 SYMBOL_PATTERN = re.compile(r'(\.\.\.|[+]|[-]|[a-zA-Z!$%&*/:<=>?~_^-][0-9a-zA-Z!$%&*/:<=>?~_^@.+-]*)') #taken from mit-scheme
 
@@ -113,9 +116,13 @@ STRING_ESCAPE_PATTERN = re.compile(r'\\([\\rn])')
 def read_atom(reader):
     t = reader.next()
 
+    match = NIL_PATTERN.fullmatch(t)
+    if match: 
+        return {'typ': 'nil', 'val': 'nil'}
+
     match = BOOL_PATTERN.fullmatch(t)
     if match:
-        return {'typ': 'bool', 'val': "#"+match[1].lower()}
+        return {'typ': 'bool', 'val': 'true' == match[1]}
 
     match = INTEGER_PATTERN.fullmatch(t)
     if match:
@@ -127,8 +134,8 @@ def read_atom(reader):
 
     match = STRING_PATTERN.fullmatch(t)
     if match:
-        unescaped = re.sub(STRING_ESCAPE_PATTERN, match[1], '\1')
-        return {'typ': 'str', 'val': match[1]}
+        unescaped = re.sub(STRING_ESCAPE_PATTERN, '\1', match[1])
+        return {'typ': 'str', 'val': unescaped}
 
     raise SyntaxError(f"unknown symbol {t}")
 
