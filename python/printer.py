@@ -1,3 +1,13 @@
+import re
+
+STRING_ESCAPE_PATTERN = re.compile(r'([\n\\"])')
+
+def escape_replacment(match):
+    if match[1] == "\n":
+        return "\\n"
+    else: 
+        return "\\" + match[1]
+
 def pr_str(mal, print_readably=False):
     if mal is None:
         return None
@@ -7,7 +17,7 @@ def pr_str(mal, print_readably=False):
         for i,m in enumerate(mal['val']):
             if i != 0:
                 s+= " "
-            s += pr_str(m) 
+            s += pr_str(m, print_readably) 
         s += ')'
         return s
     elif mal['typ'] == 'nil':
@@ -24,11 +34,9 @@ def pr_str(mal, print_readably=False):
         val = mal['val']
 
         if print_readably: 
-            val = val.replace(r'\n', "\n") 
-            val = val.replace(r'\r', "\r") 
-            val = val.replace('\\\\', '\\') 
-            return f'"{val}"'
+            val = re.sub(STRING_ESCAPE_PATTERN, escape_replacment, val)
+            return '"' + val + '"'
         else: 
-            return f'"{val}"'
+            return '"' + val + '"'
     else:
         raise Exception('unknown type')

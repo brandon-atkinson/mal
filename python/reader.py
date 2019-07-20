@@ -111,7 +111,7 @@ NIL_PATTERN = re.compile(r'nil')
 SYMBOL_PATTERN = re.compile(r'(\.\.\.|[+]|[-]|[a-zA-Z!$%&*/:<=>?~_^-][0-9a-zA-Z!$%&*/:<=>?~_^@.+-]*)') #taken from mit-scheme
 
 STRING_PATTERN = re.compile(r'"((?:\\.|[^\\"])*)"') 
-STRING_ESCAPE_PATTERN = re.compile(r'\\([\\rn])')
+STRING_ESCAPE_PATTERN = re.compile(r'\\([\\n"])')
 
 def read_atom(reader):
     t = reader.next()
@@ -134,10 +134,16 @@ def read_atom(reader):
 
     match = STRING_PATTERN.fullmatch(t)
     if match:
-        unescaped = re.sub(STRING_ESCAPE_PATTERN, '\1', match[1])
+        unescaped = re.sub(STRING_ESCAPE_PATTERN, escape_replacemnt, match[1])
         return {'typ': 'str', 'val': unescaped}
 
     raise SyntaxError(f"unknown symbol {t}")
+
+def escape_replacemnt(match):
+    if match[1] == 'n':
+        return "\n"
+    else: 
+        return match[1]
 
 def test_read_atom_bool():
     b = read_atom(Reader(["#f"]))
