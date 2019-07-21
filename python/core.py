@@ -69,6 +69,35 @@ def _gt(a, b):
 def _ge(a, b):
     return {'typ':'bool', 'val': ge(a['val'],b['val'])}
 
+def _pr_str(*ast):
+    s = str.join(" ", [ pr_str(a, print_readably=True) for a in ast ])
+    return {'typ': 'str', 'val': s}
+
+def _str(*lst):
+    s = str.join('', [ pr_str(ast, print_readably=False) for ast in lst ])
+    return {'typ': 'str', 'val': s}
+
+def _prn(*lst):
+    s = _join_str(" ", *[ _pr_str(i) for i in lst ])
+    print(s['val'])
+    return {'typ': 'nil', 'val':'nil'}
+
+def _join_str(sep, *strs):
+    joined = ""
+
+    for s in strs: 
+        if s['typ'] != 'str':
+            raise "passed non-str"
+
+        joined = str.join(sep, [ s['val'] for s in strs ])
+
+    return {'typ': 'str', 'val': joined}
+
+def _println(*lst):
+    s = _join_str(" ", *[_str(i) for i in lst])
+    print(s['val'])
+    return {'typ': 'nil', 'val': 'nil'}
+
 def _read_string(mal_str):
     read_str(mal_str['val'])
 
@@ -91,6 +120,10 @@ ns = {
         '<=': {'typ': 'fn', 'val': _le},
         '>': {'typ': 'fn', 'val': _gt},
         '>=': {'typ': 'fn', 'val': _ge},
+        'pr-str': {'typ': 'fn', 'val': _pr_str},
+        'str': {'typ': 'fn', 'val': _str},
+        'prn': {'typ': 'fn', 'val': _prn},
+        'println': {'typ': 'fn', 'val': _println},
         'read-string': {'typ': 'fn', 'val':_read_string},
         'slurp': {'typ': 'fn', 'val':_slurp},
         }

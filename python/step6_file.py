@@ -7,6 +7,7 @@ import reader
 import printer
 import env
 import core
+import traceback
 
 def _read(line):
     return reader.read_str(line)
@@ -124,6 +125,7 @@ def main(args):
                 print(rep(inp))
             except Exception as se:
                 print("Error: " + str(se))
+                traceback.print_exc()
     except EOFError: 
         sys.exit(0)
 

@@ -37,6 +37,6 @@ def pr_str(mal, print_readably=False):
             val = re.sub(STRING_ESCAPE_PATTERN, escape_replacment, val)
             return '"' + val + '"'
         else: 
-            return '"' + val + '"'
+            return val
     else:
         raise Exception('unknown type')
