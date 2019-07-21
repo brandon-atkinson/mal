@@ -108,6 +108,11 @@ repl_env = env.Env()
 for name, fn in core.ns.items():
     repl_env.set(name, fn)
 
+def _eval_fn(ast):
+    return _eval(ast, repl_env)
+
+repl_env.set('eval', {'typ': 'fn', 'val': _eval_fn})
+
 def rep(inp):
     return _print(_eval(_read(inp), repl_env))
 

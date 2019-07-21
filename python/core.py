@@ -1,6 +1,7 @@
 from functools import reduce
 from operator import add, sub, mul, floordiv, lt, le, gt, ge
 from printer import pr_str
+from reader import read_str
 
 def _add(*operands):
     return {'typ': 'int', 'val': reduce(add, [ o['val'] for o in operands ])}
@@ -68,6 +69,13 @@ def _gt(a, b):
 def _ge(a, b):
     return {'typ':'bool', 'val': ge(a['val'],b['val'])}
 
+def _read_string(mal_str):
+    read_str(mal_str['val'])
+
+def _slurp(filename):
+    with open(filename['val']) as f:
+        return {'typ': 'str', 'val':f.read()}
+
 ns = {
         '+': {'typ': 'fn', 'val': _add},
         '-': {'typ': 'fn', 'val': _sub},
@@ -83,4 +91,6 @@ ns = {
         '<=': {'typ': 'fn', 'val': _le},
         '>': {'typ': 'fn', 'val': _gt},
         '>=': {'typ': 'fn', 'val': _ge},
+        'read-string': {'typ': 'fn', 'val':_read_string},
+        'slurp': {'typ': 'fn', 'val':_slurp},
         }
