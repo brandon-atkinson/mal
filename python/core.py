@@ -99,7 +99,7 @@ def _println(*lst):
     return {'typ': 'nil', 'val': 'nil'}
 
 def _read_string(mal_str):
-    read_str(mal_str['val'])
+    return read_str(mal_str['val'])
 
 def _slurp(filename):
     with open(filename['val']) as f:
@@ -124,6 +124,6 @@ ns = {
         'str': {'typ': 'fn', 'val': _str},
         'prn': {'typ': 'fn', 'val': _prn},
         'println': {'typ': 'fn', 'val': _println},
-        'read-string': {'typ': 'fn', 'val':_read_string},
-        'slurp': {'typ': 'fn', 'val':_slurp},
+        'read-string': {'typ': 'fn', 'val': _read_string},
+        'slurp': {'typ': 'fn', 'val': _slurp},
         }

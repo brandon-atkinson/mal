@@ -28,7 +28,7 @@ def pr_str(mal, print_readably=False):
         return 'true' if mal['val'] else 'false'
     elif mal['typ'] == 'sym':
         return mal['val']
-    elif mal['typ'] == 'fn':
+    elif mal['typ'] == 'fn' or mal['typ'] == 'fn*':   
        return "#<function>"
     elif mal['typ'] == 'str':
         val = mal['val']

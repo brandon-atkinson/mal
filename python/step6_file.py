@@ -117,6 +117,8 @@ repl_env.set('eval', {'typ': 'fn', 'val': _eval_fn})
 def rep(inp):
     return _print(_eval(_read(inp), repl_env))
 
+rep('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))')
+
 def main(args):
     try: 
         while True:
