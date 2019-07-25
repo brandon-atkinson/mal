@@ -26,10 +26,13 @@ def pr_str(mal, print_readably=False):
         return str(mal['val'])
     elif mal['typ'] == 'bool':
         return 'true' if mal['val'] else 'false'
+    elif mal['typ'] == 'atom':
+        readable_val = pr_str(mal['val'], True)
+        return f"(atom {readable_val})"
     elif mal['typ'] == 'sym':
         return mal['val']
     elif mal['typ'] == 'fn' or mal['typ'] == 'fn*':   
-       return "#<function>"
+        return "#<function>"
     elif mal['typ'] == 'str':
         val = mal['val']
 

@@ -16,8 +16,8 @@ class Env:
             _binds = binds[:]
             _exprs = exprs[:]
 
-            for i, e in enumerate(_exprs):
-                self.set(binds[i], e)
+        for i, e in enumerate(_exprs):
+            self.set(binds[i], e)
 
     def set(self, name, val):
         self.data[name] = val
