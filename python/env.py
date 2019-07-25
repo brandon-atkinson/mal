@@ -3,8 +3,21 @@ class Env:
         self.outer = outer
         self.data = {}
 
-        for i, e in enumerate(exprs): 
-            self.set(binds[i], e)
+        try:
+            vararg_idx = binds.index('&')
+            if vararg_idx != len(binds) - 2:
+                raise "Syntax error: invalid location for & operator"
+            else:
+                _binds = binds[:vararg_idx]
+                _exprs = exprs[:vararg_idx]
+                self.set(binds[-1], {'typ': 'lst', 'val': exprs[vararg_idx:]})
+
+        except ValueError:
+            _binds = binds[:]
+            _exprs = exprs[:]
+
+            for i, e in enumerate(_exprs):
+                self.set(binds[i], e)
 
     def set(self, name, val):
         self.data[name] = val
