@@ -127,7 +127,10 @@ def _eval(ast, _env):
                 return ast
             else:
                 ast_nodes = ast['val']
-                if ast_nodes[0]['typ'] == 'sym' and ast_nodes[0]['val'] == 'def!':
+
+                if ast_nodes[0]['typ'] == 'sym' and ast_nodes[0]['val'] == 'quote':
+                    return ast_nodes[1]
+                elif ast_nodes[0]['typ'] == 'sym' and ast_nodes[0]['val'] == 'def!':
                     #todo: check types of ast nodes
                     name = ast_nodes[1]['val']
                     val = _eval(ast_nodes[2], _env)
