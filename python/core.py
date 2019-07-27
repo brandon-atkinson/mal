@@ -225,6 +225,18 @@ def _flatten(*args):
     
     return {'typ': 'lst', 'val': flat_list}
 
+def _cons(first, rest):
+    new_lst = [first, *rest['val']]
+    return {'typ': 'lst', 'val': new_lst}
+
+def _concat(*lsts):
+    new_lst = []
+
+    for lst in lsts:
+        new_lst.extend(lst['val'])
+
+    return {'typ': 'lst', 'val': new_lst}
+
 ns = {
         '+': {'typ': 'fn', 'val': _add},
         '-': {'typ': 'fn', 'val': _sub},
@@ -255,6 +267,8 @@ ns = {
         'apply': {'typ': 'fn', 'val': _apply},
         'swap!': eval(read_str("(fn* (atm fn & args) (reset! atm (apply fn (deref atm) args)))")),
         'eval':{'typ': 'fn', 'val': eval},
+        'cons':{'typ': 'fn', 'val': _cons},
+        'concat':{'typ': 'fn', 'val': _concat},
         }
 
 for name, fn in ns.items():
