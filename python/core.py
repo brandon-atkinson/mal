@@ -5,47 +5,117 @@ from reader import read_str
 import env
 from collections import deque
 
+NIL = {'typ':'nil', 'val': 'nil'}
+TRUE = {'typ':'bool', 'val': True}
+FALSE = {'typ':'bool', 'val': False}
+
+def mal_sym(val):
+    return {'typ': 'sym', 'val': val}
+
+def mal_bool(val):
+    if val: 
+        return TRUE
+    else:
+        return FALSE
+
+def mal_int(val):
+    return {'typ': 'int', 'val': val}
+
+def mal_str(val):
+    return {'typ': 'str', 'val': val}
+
+def mal_atom(mal):
+    return {'typ': 'atom', 'val': mal}
+
+def mal_list(*operands):
+    return {'typ': 'lst', 'val': [*operands]}
+
+def mal_fn(fn):
+    return {'typ': 'fn', 'val': fn}
+
+def mal_closure(env, params, ast, native_fn):
+    return {'typ': 'fn*', 
+            'val': { 
+                'env': env, 
+                'params': params, 
+                'ast': ast, 
+                'fn': { 'typ': 'fn', 'val': native_fn}}}
+
+def mal_val(mal):
+    return mal['val']
+
+def mal_set_val(mal, val):
+    mal['val', val]
+
+def mal_type(mal):
+    return mal['typ']
+
+def mal_types_eq(mal1, mal2):
+    return mal_type(mal1) == mal_type(mal2)
+
+def mal_is_nil(mal):
+    return mal == NIL
+
+def mal_is_sym(mal):
+    return mal['typ'] == 'sym'
+
+def mal_is_bool(mal):
+    return mal['typ'] == 'bool'
+
+def mal_is_int(mal):
+    return mal['typ'] == 'int'
+
+def mal_is_str(mal):
+    return mal['typ'] == 'str'
+
+def mal_is_atom(mal):
+    return mal['typ'] == 'atom'
+
+def mal_is_list(mal):
+    return mal['typ'] == 'lst'
+
+def mal_is_empty(mal):
+    return mal_is_list(mal) and len(mal_val(mal)) == 0 
+
+def mal_is_fn(mal):
+    return mal['typ'] == 'fn'
+
 def _add(*operands):
-    return {'typ': 'int', 'val': reduce(add, [ o['val'] for o in operands ])}
+    return mal_int(reduce(add, [ o['val'] for o in operands ]))
 
 def _sub(*operands):
-    return {'typ': 'int', 'val': reduce(sub, [ o['val'] for o in operands ])}
+    return mal_int(reduce(sub, [ o['val'] for o in operands ]))
 
 def _mul(*operands):
-    return {'typ': 'int', 'val': reduce(mul, [ o['val'] for o in operands ])}
+    return mal_int(reduce(mul, [ o['val'] for o in operands ]))
 
 def _div(*operands):
-    return {'typ': 'int', 'val': reduce(floordiv, [ o['val'] for o in operands ])}
+    return mal_int(reduce(floordiv, [ o['val'] for o in operands ]))
 
 def _prn(arg):
     val = pr_str(arg, print_readably=True)
     print(val)
-    return {'typ':'nil', 'val':'nil'}
+    return NIL
 
-def _list(*operands):
-    return {'typ':'lst', 'val': [*operands]}
+def _is_list(arg):
+    return mal_bool(mal_is_list(arg))
 
-def _islist(arg):
-    return {'typ':'bool', 'val': arg['typ'] == 'lst'}
-
-def _isempty(lst):
-    return {'typ':'bool', 'val': len(lst['val']) == 0}
+def _is_empty(lst):
+    return mal_bool(len(mal_val(lst)) == 0)
 
 def _count(lst):
-    if lst['typ'] == 'nil':
+    if mal_is_nil(lst):
         cnt = 0
     else:
-        cnt = len(lst['val'])
-    return {'typ':'int', 'val': cnt}
+        cnt = len(mal_val(lst))
+    return mal_int(cnt)
 
 def _eq(a, b):
-    a_typ = a['typ']
-    a_val = a['val']
-    b_typ = b['typ']
-    b_val = b['val']
+    a_val = mal_val(a)
+    b_val = mal_val(b)
 
-    if a_typ == b_typ:
-        if a_typ == 'lst':
+    if mal_types_eq(a, b):
+        if mal_is_list(a):
             if len(a_val) == len(b_val):
                 eq = True
                 for i in range(len(a_val)):
@@ -57,145 +127,159 @@ def _eq(a, b):
     else:
         eq = False
 
-    return {'typ':'bool', 'val': eq}
+    return mal_bool(eq)
 
 def _lt(a, b):
-    return {'typ':'bool', 'val': lt(a['val'],b['val'])}
+    return mal_bool(lt(mal_val(a),mal_val(b)))
 
 def _le(a, b):
-    return {'typ':'bool', 'val': le(a['val'],b['val'])}
+    return mal_bool(le(mal_val(a),mal_val(b)))
 
 def _gt(a, b):
-    return {'typ':'bool', 'val': gt(a['val'],b['val'])}
+    return mal_bool(gt(mal_val(a),mal_val(b)))
 
 def _ge(a, b):
-    return {'typ':'bool', 'val': ge(a['val'],b['val'])}
+    return mal_bool(ge(mal_val(a),mal_val(b)))
 
 def _pr_str(*ast):
     s = str.join(" ", [ pr_str(a, print_readably=True) for a in ast ])
-    return {'typ': 'str', 'val': s}
+    return mal_str(s)
 
 def _str(*lst):
     s = str.join('', [ pr_str(ast, print_readably=False) for ast in lst ])
-    return {'typ': 'str', 'val': s}
+    return mal_str(s)
 
 def _prn(*lst):
     s = _join_str(" ", *[ _pr_str(i) for i in lst ])
-    print(s['val'])
-    return {'typ': 'nil', 'val':'nil'}
+    print(mal_val(s))
+    return NIL
 
 def _join_str(sep, *strs):
     joined = ""
 
     for s in strs: 
-        if s['typ'] != 'str':
+        if not mal_is_str(s):
             raise "passed non-str"
 
-        joined = str.join(sep, [ s['val'] for s in strs ])
+        joined = str.join(sep, [ mal_val(s) for s in strs ])
 
-    return {'typ': 'str', 'val': joined}
+    return mal_str(joined)
 
 def _println(*lst):
     s = _join_str(" ", *[_str(i) for i in lst])
-    print(s['val'])
-    return {'typ': 'nil', 'val': 'nil'}
+    print(mal_val(s))
+    return NIL
 
-def _read_string(mal_str):
-    return read_str(mal_str['val'])
+def _read_string(s):
+    return read_str(mal_val(s))
 
 def _slurp(filename):
-    with open(filename['val']) as f:
-        return {'typ': 'str', 'val':f.read()}
-
-def _atom(mal):
-    return {'typ':'atom', 'val': mal}
+    with open(mal_val(filename)) as f:
+        return mal_str(f.read())
 
 def _is_atom(mal):
-    return {'typ': 'bool', 'val':  mal['typ'] == 'atom'}
+    return mal_bool(mal_is_atom(mal))
 
 def _deref_atom(atom):
-    return atom['val']
+    return mal_val(atom)
 
 def _reset_atom(atom, mal):
     atom['val'] = mal
     return mal
 
+def mal_is_pair(mal):
+    return mal_is_list(mal) and not mal_is_empty(mal)
+
+def _quasiquote(ast):
+    if not mal_is_pair(ast):
+        return mal_list(mal_sym('quote'), ast)
+    else:
+        lst = mal_val(ast)
+        if mal_is_sym(lst[0]) and mal_val(lst[0]) == 'unquote':
+            return lst[1]
+        
+        if mal_is_pair(lst[0]):
+            sub_lst = mal_val(lst[0]) 
+            if mal_is_sym(sub_lst[0]) and mal_val(sub_lst[0]) == 'splice-unquote':
+                retval = mal_list(mal_sym('concat'), sub_lst[1], _quasiquote(mal_list(*lst[1:]))) 
+                return retval
+
+        return mal_list(mal_sym('cons'), _quasiquote(lst[0]), _quasiquote(mal_list(*lst[1:])))
+
 def _eval(ast, _env):
     while True:
-        if ast['typ'] == 'lst':
-            if len(ast['val']) == 0:
+        if mal_is_list(ast):
+            if len(mal_val(ast)) == 0:
                 return ast
             else:
-                ast_nodes = ast['val']
+                ast_nodes = mal_val(ast)
 
-                if ast_nodes[0]['typ'] == 'sym' and ast_nodes[0]['val'] == 'quote':
+                first = ast_nodes[0]
+
+                if mal_is_sym(first) and mal_val(first) == 'quote':
                     return ast_nodes[1]
-                elif ast_nodes[0]['typ'] == 'sym' and ast_nodes[0]['val'] == 'def!':
+                elif mal_is_sym(first) and mal_val(first) == 'def!':
                     #todo: check types of ast nodes
-                    name = ast_nodes[1]['val']
+                    name = mal_val(ast_nodes[1])
                     val = _eval(ast_nodes[2], _env)
                     _env.set(name, val)
                     return val
-                elif ast_nodes[0]['typ'] == 'sym' and ast_nodes[0]['val'] == 'let*':
+                if mal_is_sym(first) and mal_val(first) == 'quasiquote':
+                    ast = _quasiquote(ast_nodes[1])    
+                    continue
+                elif mal_is_sym(first) and mal_val(first) == 'let*':
                     sub_env = env.Env(_env)
                     #todo: check types of ast nodes
-                    bind_lst = ast_nodes[1]['val']
+                    bind_lst = mal_val(ast_nodes[1])
                     for di in range(len(bind_lst) // 2):
                         i = 2*di
-                        sub_env.set(bind_lst[i]['val'], _eval(bind_lst[i+1], sub_env))
+                        sub_env.set(mal_val(bind_lst[i]), _eval(bind_lst[i+1], sub_env))
 
                     ast = ast_nodes[2]
                     _env = sub_env
                     continue
-                elif ast_nodes[0]['typ'] == 'sym' and ast_nodes[0]['val'] == 'do':
+                elif mal_is_sym(first) and mal_val(first) == 'do':
                     for a in ast_nodes[1:-1]:
                         val = _eval(a, _env)
 
                     ast = ast_nodes[-1]
                     continue
-                elif ast_nodes[0]['typ'] == 'sym' and ast_nodes[0]['val'] == 'if':
+                elif mal_is_sym(first) and mal_val(first) == 'if':
                     cond = _eval(ast_nodes[1], _env)
 
-                    if (cond['typ'] == 'nil' or (cond['typ'] == 'bool' and cond['val'] == False)):
+                    if (mal_is_nil(cond) or (mal_is_bool(cond) and mal_val(cond) == False)):
                         if len(ast_nodes) > 3: 
                             ast = ast_nodes[3]
                         else: 
-                            ast = {'typ':'nil', 'val': 'nil'}
+                            ast = NIL
                     else:
                         ast = ast_nodes[2]
 
                     continue
-                elif ast_nodes[0]['typ'] == 'sym' and ast_nodes[0]['val'] == 'fn*':
-                    fn_params = [ p['val'] for p in ast_nodes[1]['val'] ]
+                elif mal_is_sym(first) and mal_val(first) == 'fn*':
+                    fn_params = [ mal_val(p) for p in mal_val(ast_nodes[1]) ]
                     fn_body = ast_nodes[2]
                     fn_env = _env
 
                     def fn(*exprs):
                         return _eval(fn_body, env.Env(fn_env, fn_params, list(exprs)))
 
-                    return {'typ': 'fn*', 
-                            'val': {
-                                'env': fn_env, 
-                                'params': fn_params, 
-                                'ast': fn_body, 
-                                'fn': {
-                                    'typ': 'fn', 
-                                    'val': fn}}}
+                    return mal_closure(fn_env, fn_params, fn_body, fn)
                 else:
-                    fn, *args = [_eval(a, _env) for a in ast['val']]
+                    fn, *args = [_eval(a, _env) for a in mal_val(ast)]
 
                     #tail-call optimization
-                    if fn['typ'] == 'fn': 
-                        return fn['val'](*args)
+                    if mal_is_fn(fn): 
+                        return mal_val(fn)(*args)
                     else:
-                        fnv = fn['val']
+                        fnv = mal_val(fn)
 
                         ast = fnv['ast']
                         _env = env.Env(fnv['env'], fnv['params'], list(args))
                         continue
 
-        elif ast['typ'] == 'sym':
-            symbol = ast['val']
+        elif mal_is_sym(ast):
+            symbol = mal_val(ast)
             val = _env.get(symbol)
             if val is None:
                 raise UndefinedRefError(f"{symbol} not defined")
@@ -221,57 +305,75 @@ def _flatten(*args):
 
     while len(_unprocessed) > 0: 
         item = _unprocessed.popleft()
-        if item['typ'] == 'lst':
-            _unprocessed.extendleft(list(reversed(item['val'])))
+        if mal_is_list(item):
+            _unprocessed.extendleft(list(reversed(mal_val(item))))
         else: 
             flat_list.append(item)
     
-    return {'typ': 'lst', 'val': flat_list}
+    return mal_list(flat_list)
 
 def _cons(first, rest):
-    new_lst = [first, *rest['val']]
-    return {'typ': 'lst', 'val': new_lst}
+    new_lst = [first, *mal_val(rest)]
+    return mal_list(*new_lst)
+
+def _car(lst):
+    vals = mal_val(lst)
+    if len(vals) == 0:
+        raise "expected pair"
+    else:
+        return vals[0]
+
+def _cdr(lst):
+    vals = mal_val(lst)
+    if len(vals) == 0:
+        raise "expcted pair"
+    else:
+        return mal_list(*vals[1:])
 
 def _concat(*lsts):
     new_lst = []
 
     for lst in lsts:
-        new_lst.extend(lst['val'])
+        new_lst.extend(mal_val(lst))
 
-    return {'typ': 'lst', 'val': new_lst}
+    return mal_list(*new_lst)
 
 ns = {
-        '+': {'typ': 'fn', 'val': _add},
-        '-': {'typ': 'fn', 'val': _sub},
-        '*': {'typ': 'fn', 'val': _mul},
-        '/': {'typ': 'fn', 'val': _div},
-        'prn': {'typ': 'fn', 'val': _prn},
-        'list': {'typ': 'fn', 'val': _list},
-        'list?': {'typ': 'fn', 'val': _islist},
-        'empty?': {'typ': 'fn', 'val': _isempty},
-        'count': {'typ': 'fn', 'val': _count},
-        '=': {'typ': 'fn', 'val': _eq},
-        '<': {'typ': 'fn', 'val': _lt},
-        '<=': {'typ': 'fn', 'val': _le},
-        '>': {'typ': 'fn', 'val': _gt},
-        '>=': {'typ': 'fn', 'val': _ge},
+        '+': mal_fn(_add),
+        '-': mal_fn(_sub),
+        '*': mal_fn(_mul),
+        '/': mal_fn(_div),
+        'prn': mal_fn(_prn),
+        'list': mal_fn(mal_list),
+        'list?': mal_fn(_is_list),
+        'empty?': mal_fn(_is_empty),
+        'count': mal_fn(_count),
+        '=': mal_fn(_eq),
+        '<': mal_fn(_lt),
+        '<=': mal_fn(_le),
+        '>': mal_fn(_gt),
+        '>=': mal_fn(_ge),
         'not': eval(read_str("(fn* (c) (if c false true))")),
-        'pr-str': {'typ': 'fn', 'val': _pr_str},
-        'str': {'typ': 'fn', 'val': _str},
-        'prn': {'typ': 'fn', 'val': _prn},
-        'println': {'typ': 'fn', 'val': _println},
-        'read-string': {'typ': 'fn', 'val': _read_string},
-        'slurp': {'typ': 'fn', 'val': _slurp},
-        'atom': {'typ': 'fn', 'val': _atom},
-        'atom?': {'typ': 'fn', 'val': _is_atom},
-        'deref': {'typ': 'fn', 'val': _deref_atom},
-        'reset!': {'typ': 'fn', 'val': _reset_atom},
-        'flatten': {'typ': 'fn', 'val': _flatten},
-        'apply': {'typ': 'fn', 'val': _apply},
+        'pr-str': mal_fn(_pr_str),
+        'str': mal_fn(_str),
+        'prn': mal_fn(_prn),
+        'println': mal_fn(_println),
+        'read-string': mal_fn(_read_string),
+        'slurp': mal_fn(_slurp),
+        'atom': mal_fn(mal_atom),
+        'atom?': mal_fn(_is_atom),
+        'deref': mal_fn(_deref_atom),
+        'reset!': mal_fn(_reset_atom),
+        'flatten': mal_fn(_flatten),
+        'apply': mal_fn(_apply),
         'swap!': eval(read_str("(fn* (atm fn & args) (reset! atm (apply fn (deref atm) args)))")),
-        'eval':{'typ': 'fn', 'val': eval},
-        'cons':{'typ': 'fn', 'val': _cons},
-        'concat':{'typ': 'fn', 'val': _concat},
+        'eval': mal_fn(eval),
+        'cons': mal_fn(_cons),
+        'car': mal_fn(_car),
+        'first': mal_fn(_car),
+        'cdr': mal_fn(_cdr),
+        'rest': mal_fn(_cdr),
+        'concat': mal_fn(_concat),
         }
 
 for name, fn in ns.items():
