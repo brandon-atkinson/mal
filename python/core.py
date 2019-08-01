@@ -159,7 +159,7 @@ def _join_str(sep, *strs):
 
     for s in strs: 
         if not mal_is_str(s):
-            raise "passed non-str"
+            raise ValueError("passed non-str")
 
         joined = str.join(sep, [ mal_val(s) for s in strs ])
 
@@ -319,16 +319,25 @@ def _cons(first, rest):
 def _car(lst):
     vals = mal_val(lst)
     if len(vals) == 0:
-        raise "expected pair"
+        raise ValueError("expected pair")
     else:
         return vals[0]
 
 def _cdr(lst):
     vals = mal_val(lst)
     if len(vals) == 0:
-        raise "expcted pair"
+        raise ValueError("expected pair")
     else:
         return mal_list(*vals[1:])
+
+def _nth(lst, n):
+    idx = mal_val(n)
+    vals = mal_val(lst)
+
+    if idx < 0 or idx > len(lst):
+        raise ValueError("index out of range")
+
+    return vals[mal_val(n)]
 
 def _concat(*lsts):
     new_lst = []
@@ -373,6 +382,7 @@ ns = {
         'first': mal_fn(_car),
         'cdr': mal_fn(_cdr),
         'rest': mal_fn(_cdr),
+        'nth': mal_fn(_nth),
         'concat': mal_fn(_concat),
         }
 
