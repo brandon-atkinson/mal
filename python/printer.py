@@ -33,6 +33,8 @@ def pr_str(mal, print_readably=False):
         return mal['val']
     elif mal['typ'] == 'fn' or mal['typ'] == 'fn*':   
         return "#<function>"
+    elif mal['typ'] == 'macro':
+        return "#<macro>"
     elif mal['typ'] == 'str':
         val = mal['val']
 

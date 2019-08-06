@@ -24,19 +24,19 @@ class Env:
 
     def find(self, name):
         if name in self.data:
-            return self.data
+            return self.data[name]
         elif self.outer is not None:
             return self.outer.find(name)
         else: 
             return None
 
     def get(self, name):
-        env_data = self.find(name)
+        val = self.find(name)
 
-        if env_data is not None:
-            return env_data[name]
-        else:
+        if val is None:
             raise Exception(f"{name} not found")
+        else:
+            return val
 
     def __repr__(self):
         return str(self.__dict__)

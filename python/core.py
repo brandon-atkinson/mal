@@ -4,6 +4,7 @@ from printer import pr_str
 from reader import read_str
 import env
 from collections import deque
+from copy import deepcopy
 
 NIL = {'typ':'nil', 'val': 'nil'}
 TRUE = {'typ':'bool', 'val': True}
@@ -13,7 +14,7 @@ def mal_sym(val):
     return {'typ': 'sym', 'val': val}
 
 def mal_bool(val):
-    if val: 
+    if val:
         return TRUE
     else:
         return FALSE
@@ -34,12 +35,17 @@ def mal_fn(fn):
     return {'typ': 'fn', 'val': fn}
 
 def mal_closure(env, params, ast, native_fn):
-    return {'typ': 'fn*', 
-            'val': { 
-                'env': env, 
-                'params': params, 
-                'ast': ast, 
+    return {'typ': 'fn*',
+            'val': {
+                'env': env,
+                'params': params,
+                'ast': ast,
                 'fn': { 'typ': 'fn', 'val': native_fn}}}
+
+def closure_as_macro(closure):
+    macro = deepcopy(closure)
+    macro['typ'] = 'macro'
+    return macro
 
 def mal_val(mal):
     return mal['val']
@@ -75,10 +81,28 @@ def mal_is_list(mal):
     return mal['typ'] == 'lst'
 
 def mal_is_empty(mal):
-    return mal_is_list(mal) and len(mal_val(mal)) == 0 
+    return mal_is_list(mal) and len(mal_val(mal)) == 0
 
-def mal_is_fn(mal):
+def mal_is_native_fn(mal):
     return mal['typ'] == 'fn'
+
+def mal_is_user_fn(mal):
+    return mal['typ'] == 'fn*'
+
+def mal_is_macro(mal):
+    return mal['typ'] == 'macro'
+
+def _is_macro_call(ast, env):
+    if mal_is_list(ast):
+        first_node = mal_val(ast)[0]
+
+        if mal_is_sym(first_node):
+            mal = env.find(mal_val(first_node))
+            if mal is not None:
+                return mal_is_macro(mal)
+
+    return False
+
 
 def _add(*operands):
     return mal_int(reduce(add, [ o['val'] for o in operands ]))
@@ -157,7 +181,7 @@ def _prn(*lst):
 def _join_str(sep, *strs):
     joined = ""
 
-    for s in strs: 
+    for s in strs:
         if not mal_is_str(s):
             raise ValueError("passed non-str")
 
@@ -197,16 +221,30 @@ def _quasiquote(ast):
         lst = mal_val(ast)
         if mal_is_sym(lst[0]) and mal_val(lst[0]) == 'unquote':
             return lst[1]
-        
+
         if mal_is_pair(lst[0]):
-            sub_lst = mal_val(lst[0]) 
+            sub_lst = mal_val(lst[0])
             if mal_is_sym(sub_lst[0]) and mal_val(sub_lst[0]) == 'splice-unquote':
-                retval = mal_list(mal_sym('concat'), sub_lst[1], _quasiquote(mal_list(*lst[1:]))) 
+                retval = mal_list(mal_sym('concat'), sub_lst[1], _quasiquote(mal_list(*lst[1:])))
                 return retval
 
         return mal_list(mal_sym('cons'), _quasiquote(lst[0]), _quasiquote(mal_list(*lst[1:])))
 
+def _macroexpand(ast, env):
+    while _is_macro_call(ast, env):
+        macro_node, *arg_nodes = mal_val(ast)
+        macro = _eval(macro_node, env)
+        macro_val = mal_val(macro)
+        macro_fn = mal_val(macro_val['fn'])
+        ast = macro_fn(*arg_nodes)
+    return ast
+
+def macroexpand(ast):
+    return _macroexpand(ast, _env)
+
 def _eval(ast, _env):
+    ast = _macroexpand(ast, _env)
+
     while True:
         if mal_is_list(ast):
             if len(mal_val(ast)) == 0:
@@ -224,8 +262,13 @@ def _eval(ast, _env):
                     val = _eval(ast_nodes[2], _env)
                     _env.set(name, val)
                     return val
-                if mal_is_sym(first) and mal_val(first) == 'quasiquote':
-                    ast = _quasiquote(ast_nodes[1])    
+                elif mal_is_sym(first) and mal_val(first) == 'defmacro!':
+                    name = mal_val(ast_nodes[1])
+                    macro = closure_as_macro(_eval(ast_nodes[2], _env))
+                    _env.set(name, macro)
+                    return macro
+                elif mal_is_sym(first) and mal_val(first) == 'quasiquote':
+                    ast = _quasiquote(ast_nodes[1])
                     continue
                 elif mal_is_sym(first) and mal_val(first) == 'let*':
                     sub_env = env.Env(_env)
@@ -248,9 +291,9 @@ def _eval(ast, _env):
                     cond = _eval(ast_nodes[1], _env)
 
                     if (mal_is_nil(cond) or (mal_is_bool(cond) and mal_val(cond) == False)):
-                        if len(ast_nodes) > 3: 
+                        if len(ast_nodes) > 3:
                             ast = ast_nodes[3]
-                        else: 
+                        else:
                             ast = NIL
                     else:
                         ast = ast_nodes[2]
@@ -269,7 +312,7 @@ def _eval(ast, _env):
                     fn, *args = [_eval(a, _env) for a in mal_val(ast)]
 
                     #tail-call optimization
-                    if mal_is_fn(fn): 
+                    if mal_is_native_fn(fn):
                         return mal_val(fn)(*args)
                     else:
                         fnv = mal_val(fn)
@@ -303,13 +346,13 @@ def _flatten(*args):
     flat_list = []
     _unprocessed = deque(args)
 
-    while len(_unprocessed) > 0: 
+    while len(_unprocessed) > 0:
         item = _unprocessed.popleft()
         if mal_is_list(item):
             _unprocessed.extendleft(list(reversed(mal_val(item))))
-        else: 
+        else:
             flat_list.append(item)
-    
+
     return mal_list(flat_list)
 
 def _cons(first, rest):
@@ -347,12 +390,22 @@ def _concat(*lsts):
 
     return mal_list(*new_lst)
 
+_reverse_src = """
+(def! reverse
+        (let*
+                (_rev (fn* (flst rlst) 
+                    (if (empty? flst) 
+                        rlst 
+                        (_rev (cdr flst) (cons (car flst) rlst)))))
+                (fn* (lst)
+                    (_rev lst (list)))))
+"""
+
 ns = {
         '+': mal_fn(_add),
         '-': mal_fn(_sub),
         '*': mal_fn(_mul),
         '/': mal_fn(_div),
-        'prn': mal_fn(_prn),
         'list': mal_fn(mal_list),
         'list?': mal_fn(_is_list),
         'empty?': mal_fn(_is_empty),
@@ -384,6 +437,9 @@ ns = {
         'rest': mal_fn(_cdr),
         'nth': mal_fn(_nth),
         'concat': mal_fn(_concat),
+        'macroexpand': mal_fn(macroexpand),
+        'reverse': eval(read_str(_reverse_src)),
+        'load': eval(read_str("(fn* (file) (eval (read-string (slurp file))))")),
         }
 
 for name, fn in ns.items():
